@@ -410,7 +410,7 @@ def main():
             st.pyplot(fig_why)
         
         with col2:
-            st.markdown("""
+            st.markdown("### Subtract")
             <div class="info-box">
             <h3>🎯 Key Insight</h3>
             <p><strong>Gradient = Direction of STEEPEST ASCENT</strong></p>
