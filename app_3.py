@@ -6,7 +6,7 @@ import io
 import pandas as pd
 import base64
 import time
-
+learning_rate = 0.02
 # Configure the page
 st.set_page_config(
     page_title="Gradient Descent Visualizer",
