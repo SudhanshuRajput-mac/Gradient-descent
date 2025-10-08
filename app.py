@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import io
 import pandas as pd
+import base64
 
 # Configure the page
 st.set_page_config(
@@ -62,8 +63,8 @@ def create_gradient_descent_animation(function_choice, start_x, learning_rate, n
     # Set up the figure
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
     
-    # Initialize variables for animation
-    current_x = 300
+    # Use a mutable object to store current_x so it can be modified in the nested function
+    state = {'current_x': start_x}
     points_history = []
     
     def animate(frame):
@@ -84,32 +85,32 @@ def create_gradient_descent_animation(function_choice, start_x, learning_rate, n
         
         if frame == 0:
             # Show initial point
-            current_y = f(current_x)
-            points_history.append((current_x, current_y))
+            current_y = f(state['current_x'])
+            points_history.append((state['current_x'], current_y))
             
-            ax1.scatter(current_x, current_y, color='red', s=100, zorder=5)
-            ax1.text(0.05, 0.95, f'x = {current_x:.2f}\nf(x) = {current_y:.2f}', 
+            ax1.scatter(state['current_x'], current_y, color='red', s=100, zorder=5)
+            ax1.text(0.05, 0.95, f'x = {state["current_x"]:.2f}\nf(x) = {current_y:.2f}', 
                     transform=ax1.transAxes, fontsize=10, verticalalignment='top',
                     bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
             
         else:
             # Calculate gradient and update
-            gradient = (f(current_x + 1e-5) - f(current_x - 1e-5)) / (2e-5)
-            new_x = current_x - learning_rate * gradient
-            current_y = f(current_x)
+            gradient = (f(state['current_x'] + 1e-5) - f(state['current_x'] - 1e-5)) / (2e-5)
+            new_x = state['current_x'] - learning_rate * gradient
+            current_y = f(state['current_x'])
             new_y = f(new_x)
             
             # Store history
-            points_history.append((current_x, current_y))
+            points_history.append((state['current_x'], current_y))
             
             # Plot all points in history
             history_x, history_y = zip(*points_history)
             ax1.plot(history_x, history_y, 'ro-', markersize=6, linewidth=2, alpha=0.7)
-            ax1.scatter(current_x, current_y, color='red', s=100, zorder=5)
+            ax1.scatter(state['current_x'], current_y, color='red', s=100, zorder=5)
             
             # Show gradient information
             ax1.text(0.05, 0.95, 
-                    f'x = {current_x:.2f}\n'
+                    f'x = {state["current_x"]:.2f}\n'
                     f'f(x) = {current_y:.2f}\n'
                     f'Gradient = {gradient:.2f}\n'
                     f'New x = {new_x:.2f}', 
@@ -117,24 +118,24 @@ def create_gradient_descent_animation(function_choice, start_x, learning_rate, n
                     bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
             
             # Second plot: Gradient explanation
-            ax2.scatter(current_x, current_y, color='red', s=100, zorder=5)
+            ax2.scatter(state['current_x'], current_y, color='red', s=100, zorder=5)
             
             # Show gradient arrow
             grad_scale = min(abs(gradient), 1.5) * np.sign(gradient)
-            ax2.arrow(current_x, current_y, grad_scale, 0, 
+            ax2.arrow(state['current_x'], current_y, grad_scale, 0, 
                      head_width=0.2, head_length=0.1, fc='red', ec='red', 
                      linewidth=3, label=f'Gradient = {gradient:.2f}')
             
             # Show update direction
             update_scale = -learning_rate * gradient
-            ax2.arrow(current_x, current_y, update_scale, 0, 
+            ax2.arrow(state['current_x'], current_y, update_scale, 0, 
                      head_width=0.2, head_length=0.1, fc='green', ec='green', 
                      linewidth=3, label='Update direction')
             
             ax2.legend()
             
             # Update for next iteration
-            current_x = new_x
+            state['current_x'] = new_x
         
         return []
     
@@ -142,6 +143,88 @@ def create_gradient_descent_animation(function_choice, start_x, learning_rate, n
     animation = FuncAnimation(fig, animate, frames=num_steps, interval=1000, repeat=False, blit=False)
     
     return fig, animation
+
+def create_simple_gradient_descent_animation(function_choice, start_x, learning_rate, num_steps):
+    """A simpler version that creates a static visualization instead of animation"""
+    
+    # Define the function
+    if function_choice == "Quadratic: f(x) = (x-3)² + 2":
+        def f(x):
+            return (x - 3)**2 + 2
+        x_vals = np.linspace(-1, 7, 400)
+        
+    elif function_choice == "Double Well: f(x) = x⁴ - 8x² + 3x + 10":
+        def f(x):
+            return x**4 - 8*x**2 + 3*x + 10
+        x_vals = np.linspace(-3, 4, 400)
+        
+    else:  # Complex function
+        def f(x):
+            return np.sin(x) + 0.1*(x-2)**2
+        x_vals = np.linspace(-1, 5, 400)
+    
+    y_vals = f(x_vals)
+    
+    # Create figure
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+    
+    # Plot 1: Optimization path
+    ax1.plot(x_vals, y_vals, 'b-', linewidth=2, label='Cost Function')
+    
+    # Simulate gradient descent
+    current_x = start_x
+    x_history = [current_x]
+    y_history = [f(current_x)]
+    
+    for step in range(num_steps):
+        gradient = (f(current_x + 1e-5) - f(current_x - 1e-5)) / (2e-5)
+        current_x = current_x - learning_rate * gradient
+        x_history.append(current_x)
+        y_history.append(f(current_x))
+    
+    # Plot optimization path
+    ax1.plot(x_history, y_history, 'ro-', markersize=6, linewidth=2, label='Optimization Path')
+    ax1.scatter(x_history, y_history, color='red', s=100, zorder=5)
+    
+    # Add step numbers
+    for i, (x, y) in enumerate(zip(x_history, y_history)):
+        ax1.annotate(f'Step {i}', (x, y), xytext=(5, 5), textcoords='offset points', fontsize=8)
+    
+    ax1.set_xlabel('Parameter (x)')
+    ax1.set_ylabel('Cost f(x)')
+    ax1.set_title('Gradient Descent Optimization Path')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Plot 2: Gradient explanation at first step
+    ax2.plot(x_vals, y_vals, 'b-', linewidth=2, label='Cost Function')
+    
+    first_x = x_history[0]
+    first_y = y_history[0]
+    first_gradient = (f(first_x + 1e-5) - f(first_x - 1e-5)) / (2e-5)
+    
+    ax2.scatter(first_x, first_y, color='red', s=100, zorder=5, label='Starting Point')
+    
+    # Show gradient direction
+    grad_scale = min(abs(first_gradient), 1.5) * np.sign(first_gradient)
+    ax2.arrow(first_x, first_y, grad_scale, 0, 
+             head_width=0.2, head_length=0.1, fc='red', ec='red', 
+             linewidth=3, label=f'Gradient = {first_gradient:.2f}')
+    
+    # Show update direction
+    update_scale = -learning_rate * first_gradient
+    ax2.arrow(first_x, first_y, update_scale, 0, 
+             head_width=0.2, head_length=0.1, fc='green', ec='green', 
+             linewidth=3, label='Update direction')
+    
+    ax2.set_xlabel('Parameter (x)')
+    ax2.set_ylabel('Cost f(x)')
+    ax2.set_title('Gradient Explanation (First Step)')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    return fig
 
 def plot_why_subtract(start_x, learning_rate):
     """Create the 'why subtract gradient' visualization"""
@@ -339,33 +422,27 @@ def main():
     tab1, tab2, tab3, tab4 = st.tabs(["🎯 Live Animation", "📊 Optimization Path", "❓ Why Subtract?", "📖 Explanation"])
 
     with tab1:
-        st.markdown('<h2 class="sub-header">Live Gradient Descent Animation</h2>', unsafe_allow_html=True)
+        st.markdown('<h2 class="sub-header">Gradient Descent Visualization</h2>', unsafe_allow_html=True)
         
-        # Create animation
-        fig, animation = create_gradient_descent_animation(
-            function_choice, start_x, learning_rate, num_steps, algorithm
+        # Use the simpler static visualization to avoid animation issues
+        st.info("🚀 **Interactive Visualization** - Showing gradient descent steps with clear explanations")
+        
+        fig_simple = create_simple_gradient_descent_animation(
+            function_choice, start_x, learning_rate, num_steps
         )
+        st.pyplot(fig_simple)
         
-        # Display animation
-        if animation:
-            # Convert animation to HTML5 video
-            from IPython.display import HTML
-            video_html = animation.to_jshtml()
-            
-            # Display using components
-            st.components.v1.html(video_html, height=600)
-            
-            # Download button for animation
-            buf = io.BytesIO()
-            animation.save(buf, format='gif', writer='pillow', fps=2)
-            buf.seek(0)
-            
-            st.download_button(
-                label="📥 Download Animation as GIF",
-                data=buf,
-                file_name="gradient_descent.gif",
-                mime="image/gif"
-            )
+        # Add download button for the static plot
+        buf = io.BytesIO()
+        fig_simple.savefig(buf, format="png", dpi=150, bbox_inches='tight')
+        buf.seek(0)
+        
+        st.download_button(
+            label="📥 Download Visualization as PNG",
+            data=buf,
+            file_name="gradient_descent.png",
+            mime="image/png"
+        )
 
     with tab2:
         st.markdown('<h2 class="sub-header">Optimization Path Analysis</h2>', unsafe_allow_html=True)
@@ -382,7 +459,7 @@ def main():
             metrics = calculate_convergence_metrics(function_choice, start_x, learning_rate, num_steps)
             st.metric("Final Cost", f"{metrics['final_cost']:.4f}")
             st.metric("Total Improvement", f"{metrics['improvement']:.4f}")
-            st.metric("Convergence Rate", f"{metrics['convergence_rate']:.4f}")
+            st.metric("Convergence Rate", f"{metrics['convergence_rate']:.2%}")
         
         with col2:
             st.markdown("### 🎯 Parameter History")
@@ -417,16 +494,78 @@ def main():
 
     with tab4:
         st.markdown("### 📖 Gradient Descent Explained")
-        st.markdown("""
-        Gradient Descent is an optimization algorithm used to minimize functions by iteratively moving in the direction of steepest descent.
         
-        **Key Concepts:**
-        - **Gradient**: Points in the direction of steepest ascent
-        - **Learning Rate**: Controls the size of each step
-        - **Update Rule**: `x_new = x_old - η × ∇f(x)`
+        col1, col2 = st.columns(2)
         
-        We **subtract** the gradient because we want to move **downhill** to find the minimum!
-        """)
+        with col1:
+            st.markdown("""
+            #### What is Gradient Descent?
+            
+            Gradient Descent is an **optimization algorithm** used to find the minimum of a function. 
+            In machine learning, we use it to minimize the **cost function** and find the best parameters for our model.
+            
+            #### 🎯 The Core Idea
+            
+            1. **Start** at a random point on the cost function
+            2. **Calculate** the gradient (slope) at that point
+            3. **Move** in the opposite direction of the gradient
+            4. **Repeat** until you reach the minimum
+            
+            #### ⚙️ Key Components
+            
+            - **Cost Function**: Measures how wrong our predictions are
+            - **Gradient**: Direction of steepest ascent
+            - **Learning Rate**: Size of each step
+            - **Parameters**: Values we're optimizing
+            """)
+        
+        with col2:
+            st.markdown("""
+            #### 📝 Mathematical Foundation
+            
+            **Update Rule:**
+            ```
+            θ = θ - η * ∇J(θ)
+            ```
+            
+            Where:
+            - `θ` = Parameters
+            - `η` = Learning rate
+            - `∇J(θ)` = Gradient of cost function
+            
+            #### 🚀 Why Subtract?
+            
+            The gradient points **uphill** (direction of steepest ascent).
+            
+            To **minimize** the function, we need to go **downhill**, so we:
+            - **SUBTRACT** the gradient to go downhill ✅
+            - Never add the gradient (that would go uphill) ❌
+            
+            #### 💡 Pro Tips
+            
+            - Normalize your features
+            - Monitor learning curves
+            - Use learning rate scheduling
+            - Try different optimizers
+            """)
+        
+        # Interactive formula explanation
+        st.markdown("---")
+        st.markdown("### 🧮 Interactive Formula Explorer")
+        
+        current_x = st.slider("Current x value", -2.0, 8.0, 5.0, 0.1, key="formula_x")
+        current_lr = st.slider("Current learning rate", 0.01, 1.0, 0.3, 0.01, key="formula_lr")
+        
+        # Calculate and display the formula step by step
+        f = get_function(function_choice)
+        gradient = calculate_gradient(function_choice, current_x)
+        new_x = current_x - current_lr * gradient
+        
+        st.latex(f"\\text{{Gradient }}\\nabla f(x) = {gradient:.3f}")
+        st.latex(f"x_{{new}} = x_{{old}} - \\eta \\times \\nabla f(x)")
+        st.latex(f"x_{{new}} = {current_x:.3f} - {current_lr:.3f} \\times {gradient:.3f} = {new_x:.3f}")
+        
+        st.metric("Cost Improvement", f"{f(current_x) - f(new_x):.4f}")
 
 if __name__ == "__main__":
     main()
