@@ -63,7 +63,7 @@ def create_gradient_descent_animation(function_choice, start_x, learning_rate, n
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
     
     # Initialize variables for animation
-    current_x = start_x
+    current_x = 300
     points_history = []
     
     def animate(frame):
