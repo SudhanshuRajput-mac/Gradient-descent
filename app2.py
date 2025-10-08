@@ -412,7 +412,7 @@ def main():
         with col2:
             st.markdown("### Subtract")
             <div class="info-box">
-            <h3>🎯 Key Insight</h3>
+            <h3> Key Insight</h3>
             <p><strong>Gradient = Direction of STEEPEST ASCENT</strong></p>
             <p>To <strong>MINIMIZE</strong> the function, we need to go in the <strong>OPPOSITE</strong> direction!</p>
             <br>
